@@ -1,5 +1,7 @@
 # `[wire-report "0.1.0"]`
 
+[![Clojars Project](https://img.shields.io/clojars/v/wire-report.svg)](https://clojars.org/wire-report)
+
 On nodejs, use either IPC or a network socket to send state collected by cljs.test as a report object (via transit) back to your controlling process.
 
 *Optionally* pass a [`net.Socket` options object](https://nodejs.org/api/net.html#net_net_connect_options_connectlistener) to `wire/start-client`. The socket will take precedence over IPC and will automatically cleanup after itself once the report has been written.

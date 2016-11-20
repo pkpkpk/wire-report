@@ -1,19 +1,27 @@
-# wire-report
+# `[wire-report "0.1.0"]`
 
+On nodejs, use either IPC or a network socket to send state collected by cljs.test as a report object (via transit) back to your controlling process.
 
-Use either IPC or a network socket to send a test-report object (via transit) back to your controlling process.
-
-Optionally pass a [`net.Socket` options object](https://nodejs.org/api/net.html#net_net_connect_options_connectlistener) to `wire/start-client`. The socket will take precedence over IPC and will automatically cleanup after itself once the report has been written.
+*Optionally* pass a [`net.Socket` options object](https://nodejs.org/api/net.html#net_net_connect_options_connectlistener) to `wire/start-client`. The socket will take precedence over IPC and will automatically cleanup after itself once the report has been written.
 
 Use `wire/connected?` to conditionally use the `:wire` reporter key. If socket creation was omitted,  it will automatically defer to `js/process.send`
 
 ```clojure
-(let [client (if opts (wire/start-client (clj->js opts)))]
-  (if (wire/connected?)
-    (run-tests {:reporter :wire}
-      'project.test.core
-    (run-tests
-      'project.test.core)))
+(ns project.test.runner
+  (:require [cljs.test :refer-macros [run-tests]]
+            [project.test.core-tests]
+            [wire-report.core :as wire]))
+
+(defn -main [& args]
+  (let [opts (parse-args args)
+        _  (if opts (wire/start-client (clj->js opts)))]
+    (if (wire/connected?)
+      (run-tests {:reporter :wire}
+        'project.test.core-tests
+      (run-tests
+        'project.test.core-tests)))))
+
+(set! *main-cli-fn* -main)
 ```
 
 <hr>

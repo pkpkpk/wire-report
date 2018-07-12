@@ -132,7 +132,7 @@
    :message "Uncaught exception, not in assertion."
    :actual js/Error}
 
-(defmethod test/report [:atom :error] [m]
+(defmethod test/report [:wire :error] [m]
   (let [ctx (-> (test/get-current-env)
               (dissoc :report-counters :reporter)
               process-ctx

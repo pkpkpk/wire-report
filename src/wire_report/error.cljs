@@ -3,7 +3,7 @@
 
 (defn mapped-line? [line] (.test #"\d\)$" line))
 
-(defn stackline->var-info
+(defn stackline->var-info ; v8 specific?
   [line]
   (let [line (string/replace-first line  #"^ +at " "")
         [munged js-address] (if (mapped-line? line)
@@ -21,57 +21,38 @@
                        (map #(string/replace % #"\)" ""))
                        (map #(js/parseInt %)))
                       (rest (array-seq (.split (subs js-address i) ":"))))]
-    ; (util/err js-address)
     {:col col
      :row row
-     :js-address js-address
-     :js-file (subs js-address 0 (.-index (.exec #":\d" js-address)))
+     :raw js-address ;<= devtools treats as url
+     :file (subs js-address 0 (.-index (.exec #":\d" js-address)))
      :var var}))
+
+(defn classify-msg [msg] ;=> ?map
+  (cond
+    (string/includes? msg "property 'call'")
+    {:type :bad-function-call}
+
+    (string/includes? msg "Invalid arity:")
+    {:type :invalid-arity}
+
+    (string/includes? msg "is not a function")
+    {:type :not-a-function}
+
+    (and (string/includes? msg "Cannot read property")
+         (or (string/includes? msg "of undefined")
+             (string/includes? msg "of null")))
+    {:type :undefined-type
+     :suggestion :typo?}
+
+    :else {}))
 
 (defn err->map [err]
   (let [msg (pr-str (.-message err))
-        stack (string/split-lines (.-stack err))]
-    (cond
-      (string/includes? msg "property 'call'")
-      (let [{:keys [col row js-file var]} (stackline->var-info (second stack))]
-        {:type :bad-function-call
-         :raw err
-         :message msg
-         :var var
-         :js-file js-file
-         :address {:row row :col col}})
-
-      (string/includes? msg "Invalid arity:")
-      (let [{:keys [col row js-file var]} (stackline->var-info (second stack))]
-        {:type :invalid-arity
-         :raw err
-         :message msg
-         :var var
-         :js-file js-file
-         :address {:row row :col col}})
-
-      (string/includes? msg "is not a function")
-      (let [{:keys [col row js-file var]} (stackline->var-info (second stack))]
-        {:type :not-a-function
-         :raw err
-         :message msg
-         :var var
-         :js-file js-file
-         :address {:row row :col col}})
-
-      (and (string/includes? msg "Cannot read property")
-           (or (string/includes? msg "of undefined")
-               (string/includes? msg "of null")))
-      (let [{:keys [col row js-file var]} (stackline->var-info (second stack))]
-        {:type :undefined-type
-         :suggestion :typo?
-         :raw err
-         :message msg
-         :var var
-         :js-file js-file
-         :address {:row row :col col}})
-
-      :else
-      {:raw err
-       :message msg
-       :stack stack})))
+        stack (string/split-lines (.-stack err))
+        var-info (stackline->var-info (second stack))
+        common {:message msg
+                :var (get var-info :var)
+                :js-address (dissoc var-info :var)
+                :raw-error err
+                :stack stack}]
+    (merge common (classify-msg msg))))

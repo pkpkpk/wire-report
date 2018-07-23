@@ -10,18 +10,18 @@ Use `wire/connected?` to conditionally use the `:wire` reporter key. If socket c
 
 ```clojure
 (ns project.test.runner
-  (:require [cljs.test :refer-macros [run-tests]]
-            [project.test.core-tests]
-            [wire-report.core :as wire]))
+  (:require [wire-report.core :as wire]
+            [project.test.core-tests]))
+
+(defn get-opts [args]
+  (if-let [a (first args)]
+    (if (and (string/starts-with? a "{") (string/ends-with? a "}"))
+       (read-string a))))
 
 (defn -main [& args]
-  (let [opts (parse-args args)
-        _  (if opts (wire/start-client (clj->js opts)))]
-    (if (wire/connected?)
-      (run-tests {:reporter :wire}
-        'project.test.core-tests
-      (run-tests
-        'project.test.core-tests)))))
+  (some-> (get-opts args) clj->js wire/start-client)  
+  (wire/run-tests ;; will default to normal report when not connected
+    'project.test.core-tests)))
 
 (set! *main-cli-fn* -main)
 ```

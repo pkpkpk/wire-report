@@ -46,14 +46,23 @@
       (send-ipc msg)
       (send-sock msg))))
 
+(def ^{:dynamic true
+       :doc "bind fn<map> to *local-reporter*, wrangle test results in the same runtime."}
+  *local-reporter* nil)
+
+(defn report! [results]
+  (if *local-reporter*
+    (*local-reporter* results)
+    (if (connected?)
+      (send results)
+      (js/console.error results))))
+
 (defn start-client [opts] (reset! client (net.connect opts)))
 
 (defn catch-uncaught []
   (.once js/process "uncaughtException"
     (fn [e]
-      (if-not (connected?)
-        (js/console.error e)
-        (send [:uncaughtException [(err->map e)]])))))
+      (report! {:errors [[:uncaughtException [(E/err->map e)]]]})))) ;; needs test
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -146,8 +155,6 @@
 (defonce last-result (atom nil))
 (defonce last-fail   (atom nil))
 
-(def ^:dynamic *local-reporter* nil)
-
 (defmethod test/report [:wire :end-run-tests] [m]
   (let [results (assoc (dissoc m :type)
                        :fails @fails
@@ -157,7 +164,5 @@
     (reset! errors [])
     (reset! tested-namespaces [])
     (reset! last-result results)
-    (if *local-reporter*
-      (*local-reporter* results)
-      (send results))))
+    (report! results)))
 

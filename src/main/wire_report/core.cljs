@@ -50,7 +50,10 @@
 
 (defn catch-uncaught []
   (.once js/process "uncaughtException"
-    (fn [e] (send [:uncaughtException [(err->map e)]]))))
+    (fn [e]
+      (if-not (connected?)
+        (js/console.error e)
+        (send [:uncaughtException [(err->map e)]])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

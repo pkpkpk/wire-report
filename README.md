@@ -35,7 +35,7 @@ Use `wire/connected?` to conditionally use the `:wire` reporter key. If socket c
  1. var forms `#'foo.bar` are converted to simple symbols: `'foo.bar`
  +  fixture fns are replaced with their qualified symbols or labeled as `:anonymous-fn`
  + js/Error objects cannot be serialized: their message and stack are sent in simple maps
- + ~~`:expected` & `:actual` forms are just strings ~~
+ + ~~`:expected` & `:actual` forms are just strings~~
  + testing-contexts is a vector of strings instead of list
 
 
